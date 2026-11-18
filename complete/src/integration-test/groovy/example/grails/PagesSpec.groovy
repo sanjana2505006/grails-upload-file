@@ -33,6 +33,31 @@ class PagesSpec extends Specification implements HttpClientSupport {
         controller << ['restaurant', 'pointOfInterest', 'hotel']
     }
 
+    @Unroll
+    void "a #controller name edit from an outdated form is rejected"() {
+        given:
+        Long id = save(controller)
+        Map<String, Object> form = [_method: 'PUT', id: id, version: 0]
+        httpPostForm("/${controller}/update", form + [name: 'First']).assertStatus(200)
+
+        when: 'a second form, opened before the first edit, is submitted'
+        def response = httpPostForm("/${controller}/update", form + [name: 'Second'])
+
+        then:
+        response.assertStatus(200)
+        response.assertContains("Another user has updated this ${label} while you were editing")
+        http("/${controller}/show/${id}").assertContains('First')
+
+        cleanup:
+        delete(controller, id)
+
+        where:
+        controller        | label
+        'restaurant'      | 'Restaurant'
+        'pointOfInterest' | 'Point of Interest'
+        'hotel'           | 'Hotel'
+    }
+
     private Long save(String controller) {
         switch (controller) {
             case 'restaurant' -> restaurantDataService.save('Example').id

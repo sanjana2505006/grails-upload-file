@@ -1,6 +1,7 @@
 package example.grails
 
 import grails.testing.web.controllers.ControllerUnitTest
+import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.mock.web.MockMultipartFile
 import spock.lang.Specification
 
@@ -43,6 +44,24 @@ class RestaurantControllerSpec extends Specification implements ControllerUnitTe
         0 * controller.restaurantDataService.update(*_)
         view == 'editFeaturedImage'
         model.restaurant instanceof FeaturedImageCommand
+    }
+
+    void "an upload that loses a race with another update shows the form again with a message"() {
+        given:
+        request.method = 'POST'
+        request.addFile(new MockMultipartFile('featuredImageFile', 'photo.png', 'image/png', [1] as byte[]))
+        params.id = 5
+        params.version = 0
+
+        when:
+        controller.uploadFeaturedImage()
+
+        then:
+        1 * controller.restaurantDataService.update(5L, 0L, _, 'image/png') >> {
+            throw new OptimisticLockingFailureException('row was updated by another transaction')
+        }
+        flash.message == 'Another user has updated this Restaurant while you were editing'
+        response.redirectedUrl == '/restaurant/editFeaturedImage/5'
     }
 
     void "featuredImage renders the stored bytes with their content type"() {
