@@ -26,7 +26,7 @@ class RestaurantControllerSpec extends Specification implements ControllerUnitTe
         controller.uploadFeaturedImage()
 
         then:
-        1 * controller.restaurantDataService.update(5L, 0L, bytes, 'image/png') >> saved
+        1 * controller.restaurantDataService.updateFeaturedImage(5L, 0L, bytes, 'image/png') >> saved
         response.redirectedUrl == '/restaurant/show/5'
     }
 
@@ -41,7 +41,7 @@ class RestaurantControllerSpec extends Specification implements ControllerUnitTe
         controller.uploadFeaturedImage()
 
         then:
-        0 * controller.restaurantDataService.update(*_)
+        0 * controller.restaurantDataService.updateFeaturedImage(*_)
         view == 'editFeaturedImage'
         model.restaurant instanceof FeaturedImageCommand
     }
@@ -57,7 +57,7 @@ class RestaurantControllerSpec extends Specification implements ControllerUnitTe
         controller.uploadFeaturedImage()
 
         then:
-        1 * controller.restaurantDataService.update(5L, 0L, _, 'image/png') >> {
+        1 * controller.restaurantDataService.updateFeaturedImage(5L, 0L, _, 'image/png') >> {
             throw new OptimisticLockingFailureException('row was updated by another transaction')
         }
         flash.message == 'Another user has updated this Restaurant while you were editing'
